@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.eitgh.registers.db.DbCore;
 import com.eitgh.registers.entities.User;
+import com.eitgh.registers.exceptions.ErrorLoginException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,13 +28,21 @@ public class UsersRepository {
         db.insert("user", null, values);
     }
 
-    public User login(String name, String password) {
-        String[] columns = new String[]{name, password};
+    public User login(String email, String password) {
+        String[] columns = new String[]{email, password};
         User user = null;
-        Cursor cursor = db.query("user", columns, null, null, null, null, null);
-        if (cursor.getCount()>0){
-            user = new User(cursor.getInt(0),cursor.getString(1),cursor.getString(2),cursor.getString(3));
-            cursor.close();
+        String sql = "select * from user where email = ? and password = ?";
+        try {
+            Cursor cursor = db.rawQuery(sql, new String[]{email, password});
+            if (cursor.moveToFirst()) {
+                if (email.equals(cursor.getString(2))) {
+                    if (password.equals(cursor.getString(3))) {
+                        user = new User(cursor.getInt(0), cursor.getString(1), cursor.getString(2), cursor.getString(3));
+                    }
+                }
+            }
+        } catch (ErrorLoginException e) {
+            e.getMessage();
         }
         return user;
     }
@@ -50,7 +59,6 @@ public class UsersRepository {
 
                 users.add(user);
             } while (cursor.moveToNext());
-            cursor.close();
         }
         return users;
     }
